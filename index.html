@@ -1,35 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Office Attendance - Laptop Only</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Attendance Portal</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding-top: 50px; background: #eceff1; }
-        .card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center; }
-        input { padding: 12px; width: 90%; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; background: #eceff1; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        input { padding: 12px; width: 90%; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         .btn-group { display: flex; gap: 10px; justify-content: center; }
-        button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; flex: 1; transition: 0.3s; }
+        button { padding: 15px 10px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; flex: 1; transition: 0.3s; font-size: 14px; }
         .btn-in { background: #28a745; }
         .btn-out { background: #dc3545; }
+        button:active { transform: scale(0.95); } /* Nice feedback for touch screens */
         button:disabled { background: #ccc; cursor: not-allowed; }
-        #msg { margin-top: 20px; font-weight: bold; font-size: 18px; }
-
-        /* Mobile Blocker Screen */
-        #mobile-blocker {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #2c3e50; color: white; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 9999; padding: 20px;
-        }
+        #msg { margin-top: 20px; font-weight: bold; font-size: 18px; min-height: 24px; }
     </style>
 </head>
 <body>
 
-<div id="mobile-blocker">
-    <h1>🚫 Access Restricted</h1>
-    <p>This software only works on a <b>Laptop/Desktop</b>.</p>
-</div>
-
 <div class="card" id="main-content">
     <h2>Attendance Portal</h2>
+    <p style="color: #666; font-size: 14px;">Please enter your name to clock in/out</p>
+    
     <input type="text" id="userName" placeholder="Enter Full Name" required>
     
     <div class="btn-group">
@@ -41,17 +33,7 @@
 </div>
 
 <script>
-    // 1. Laptop-only Check
-    function checkDevice() {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile || window.innerWidth < 1024) {
-            document.getElementById('mobile-blocker').style.display = 'flex';
-            document.getElementById('main-content').style.display = 'none';
-        }
-    }
-    window.onload = checkDevice;
-
-    // 2. Data Submission
+   
     const scriptURL = 'https://script.google.com/macros/s/AKfycbx4YxK4Z80ZeSrQk0d0vcXaO72s_ju62AEXQA3mOBWBYXixpiAjWtTFBqpN4FUHlsP2/exec'; 
 
     function sendData(actionType) {
@@ -77,13 +59,12 @@
             .then(result => {
                 msg.innerHTML = result;
                 
-                // Color Logic
                 if (result === "Late Checkin") {
-                    msg.style.color = "#dc3545"; // Red for Late
+                    msg.style.color = "#dc3545"; 
                 } else if (result.includes("Error")) {
                     msg.style.color = "orange";
                 } else {
-                    msg.style.color = "#28a745"; // Green for Success
+                    msg.style.color = "#28a745"; 
                 }
 
                 if(result.includes("Successful") || result === "Late Checkin") {
