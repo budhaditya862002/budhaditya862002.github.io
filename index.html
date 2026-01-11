@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; background: #eceff1; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        
+        /* Tabs */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab { flex: 1; padding: 12px; cursor: pointer; color: #666; font-weight: bold; transition: 0.3s; }
+        .tab.active { color: #007bff; border-bottom: 3px solid #007bff; }
+        
+        /* Tab Visibility */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        input, select { padding: 12px; width: 100%; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        label { display: block; text-align: left; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #555; text-transform: uppercase; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 15px 10px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; flex: 1; transition: 0.3s; font-size: 14px; }
+        .btn-in { background: #28a745; }
+        .btn-out { background: #dc3545; }
+        .btn-leave { background: #007bff; width: 100%; margin-top: 10px; }
+        .btn-balance { background: #6c757d; width: 100%; font-size: 12px; padding: 8px; margin-bottom: 15px; }
+        
+        .leave-stats { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
+        .leave-stats th, .leave-stats td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .leave-stats th { background: #f8f9fa; }
+        .bal-cell { font-weight: bold; color: #007bff; }
+
+        #msg, #leaveMsg { margin-top: 20px; font-weight: bold; font-size: 15px; min-height: 24px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="tabs">
+        <div class="tab active" onclick="openTab(event, 'attendance-section')">Attendance</div>
+        <div class="tab" onclick="openTab(event, 'leave-section')">Leave</div>
+    </div>
+
+    <div id="attendance-section" class="tab-content active">
+        <h2>Attendance</h2>
+        <label>Official Email</label>
+        <input type="email" id="attEmail" placeholder="email@company.com">
+        <div class="btn-group">
+            <button onclick="sendAttendance('in')" class="btn-in" id="inBtn">Check In</button>
+            <button onclick="sendAttendance('out')" class="btn-out" id="outBtn">Check Out</button>
+        </div>
+        <p id="msg"></p>
+    </div>
+
+    <div id="leave-section" class="tab-content">
+        <h2>Leave Management</h2>
+        <label>Official Email</label>
+        <input type="email" id="leaveEmail" placeholder="email@company.com">
+        
+        <button onclick="fetchBalance()" class="btn-balance">Refresh/Check Balance</button>
+
+        <table class="leave-stats">
+            <thead>
+                <tr><th>Type</th><th>Total</th><th>Used</th><th>Balance</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Sick</td><td>6</td><td id="used-sick">0</td><td id="bal-sick" class="bal-cell">6</td></tr>
+                <tr><td>Casual</td><td>6</td><td id="used-casual">0</td><td id="bal-casual" class="bal-cell">6</td></tr>
+                <tr><td>Wellness</td><td>12</td><td id="used-wellness">0</td><td id="bal-wellness" class="bal-cell">12</td></tr>
+                <tr><td>Bereavement</td><td>3</td><td id="used-bereavement">0</td><td id="bal-bereavement" class="bal-cell">3</td></tr>
+            </tbody>
+        </table>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        <label>Leave Type</label>
+        <select id="leaveType">
+            <option value="Sick">Sick Leave</option>
+            <option value="Casual">Casual Leave</option>
+            <option value="Wellness">Wellness Leave</option>
+            <option value="Bereavement">Bereavement Leave</option>
+        </select>
+        
+        <label>Number of Days</label>
+        <input type="number" id="leaveDays" min="1" value="1">
+        
+        <button onclick="sendLeave()" class="btn-leave" id="leaveBtn">Submit Leave Request</button>
+        <p id="leaveMsg"></p>
+    </div>
+</div>
+
+<script>
+   
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbywIbnlpd910gWkeBWpEeR-CWohdbccMvnhpl78FYdNb4GlAt1ockQkEbLKCFe4tY8l/exec'; 
+
+    function openTab(evt, sectionId) {
+        // Hide all contents
+        var contents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < contents.length; i++) {
+            contents[i].classList.remove("active");
+        }
+        // Remove active class from all tabs
+        var tabs = document.getElementsByClassName("tab");
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove("active");
+        }
+        // Show current section and mark tab active
+        document.getElementById(sectionId).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function fetchBalance() {
+        const email = document.getElementById('leaveEmail').value;
+        const lMsg = document.getElementById('leaveMsg');
+        if(!email) { alert("Please enter your email first"); return; }
+        
+        lMsg.innerHTML = "Fetching balance data...";
+        
+        fetch(`${scriptURL}?action=getBalance&email=${email}`)
+            .then(res => res.json())
+            .then(data => {
+                for (const [type, val] of Object.entries(data)) {
+                    if(document.getElementById(`used-${type}`)) {
+                        document.getElementById(`used-${type}`).innerText = val.used;
+                        document.getElementById(`bal-${type}`).innerText = val.balance;
+                    }
+                }
+                lMsg.innerHTML = "Balance updated.";
+                lMsg.style.color = "#007bff";
+            })
+            .catch(err => { lMsg.innerHTML = "Could not sync balance."; });
+    }
+
+    function sendAttendance(action) {
+        const email = document.getElementById('attEmail').value;
+        const msg = document.getElementById('msg');
+        if(!email) { msg.innerHTML = "Email is required!"; return; }
+        
+        msg.innerHTML = "Recording...";
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('action', action);
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(result => { 
+                msg.innerHTML = result; 
+                msg.style.color = "#28a745"; 
+                document.getElementById('attEmail').value = "";
+            });
+    }
+
+    function sendLeave() {
+        const email = document.getElementById('leaveEmail').value;
+        const type = document.getElementById('leaveType').value;
+        const days = document.getElementById('leaveDays').value;
+        const lMsg = document.getElementById('leaveMsg');
+
+        if(!email) { lMsg.innerHTML = "Email is required!"; return; }
+        
+        lMsg.innerHTML = "Submitting leave...";
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('action', 'leave');
+        formData.append('leaveType', type);
+        formData.append('days', days);
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(result => {
+                lMsg.innerHTML = result;
+                lMsg.style.color = result.includes("Error") ? "red" : "#28a745";
+                fetchBalance(); 
+            });
+    }
+</script>
+</body>
+</html>
