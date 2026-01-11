@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; background: #eceff1; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        /* Tab Styling */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab { flex: 1; padding: 12px; cursor: pointer; color: #666; font-weight: bold; transition: 0.3s; }
+        .tab.active { color: #007bff; border-bottom: 3px solid #007bff; }
+        .content { display: none; }
+        .content.active { display: block; }
+
+        input, select { padding: 12px; width: 100%; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 15px 10px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; flex: 1; transition: 0.3s; font-size: 14px; }
+        .btn-in { background: #28a745; }
+        .btn-out { background: #dc3545; }
+        .btn-leave { background: #007bff; width: 100%; }
+        
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .leave-stats { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
+        .leave-stats th, .leave-stats td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .leave-stats th { background: #f8f9fa; }
+
+        #msg, #leaveMsg { margin-top: 20px; font-weight: bold; font-size: 16px; min-height: 24px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="tabs">
+        <div id="tab-att" class="tab active" onclick="openTab('attendance')">Attendance</div>
+        <div id="tab-leave" class="tab" onclick="openTab('leave')">Leave</div>
+    </div>
+
+    <div id="attendance" class="content active">
+        <h2>Attendance</h2>
+        <input type="text" id="userName" placeholder="Enter Full Name">
+        <div class="btn-group">
+            <button onclick="sendData('in')" class="btn-in" id="inBtn">Check In</button>
+            <button onclick="sendData('out')" class="btn-out" id="outBtn">Check Out</button>
+        </div>
+        <p id="msg"></p>
+    </div>
+
+    <div id="leave" class="content">
+        <h2>Leave Request</h2>
+        <select id="leaveType">
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Casual Leave">Casual Leave</option>
+            <option value="Wellness Leave">Wellness Leave</option>
+            <option value="Bereavement Leave">Bereavement Leave</option>
+            <option value="LOP">LOP (Loss of Pay)</option>
+        </select>
+        <input type="number" id="leaveDays" placeholder="Number of days" min="1" value="1">
+        <button onclick="sendLeave()" class="btn-leave" id="leaveBtn">Submit Leave</button>
+        <p id="leaveMsg"></p>
+
+        <table class="leave-stats">
+            <thead>
+                <tr><th>Type</th><th>Total</th><th>Used</th></tr>
+            </thead>
+            <tbody id="leaveBody">
+                <tr><td>Sick</td><td>6</td><td id="used-sick">0</td></tr>
+                <tr><td>Casual</td><td>6</td><td id="used-casual">0</td></tr>
+                <tr><td>Wellness</td><td>12</td><td id="used-wellness">0</td></tr>
+                <tr><td>Bereavement</td><td>2</td><td id="used-bereavement">0</td></tr>
+                <tr><td>LOP</td><td>∞</td><td id="used-lop">0</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // PASTE YOUR GOOGLE SCRIPT URL HERE
+    const scriptURL = 'https://script.google.com/macros/s/AKfycby-BO_Fc5BKPdhq9VbNTiO9M-Xi4TMhK72q7lWearcr_TLesvoF3SUlYTwx7hA3f_tE/exec'; 
+
+    function openTab(name) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(name).classList.add('active');
+        document.getElementById('tab-' + (name === 'attendance' ? 'att' : 'leave')).classList.add('active');
+    }
+
+    function sendData(action) {
+        const name = document.getElementById('userName').value;
+        const msg = document.getElementById('msg');
+        if(!name) { msg.innerHTML = "Name required!"; return; }
+        
+        msg.innerHTML = "Processing...";
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('action', action);
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(result => { msg.innerHTML = result; msg.style.color = "#28a745"; })
+            .catch(err => { msg.innerHTML = "Error!"; msg.style.color = "red"; });
+    }
+
+    function sendLeave() {
+        const name = document.getElementById('userName').value;
+        const type = document.getElementById('leaveType').value;
+        const days = document.getElementById('leaveDays').value;
+        const lMsg = document.getElementById('leaveMsg');
+
+        if(!name) { lMsg.innerHTML = "Enter name in Attendance tab!"; return; }
+        
+        lMsg.innerHTML = "Submitting...";
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('action', 'leave');
+        formData.append('leaveType', type);
+        formData.append('days', days);
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(result => {
+                lMsg.innerHTML = "Leave Submitted!";
+                lMsg.style.color = "#28a745";
+                // Optional: Update local UI count for visual feedback
+                let cellId = "used-" + type.split(' ')[0].toLowerCase();
+                let cell = document.getElementById(cellId);
+                if(cell) cell.innerText = parseInt(cell.innerText) + parseInt(days);
+            });
+    }
+</script>
+</body>
+</html>
