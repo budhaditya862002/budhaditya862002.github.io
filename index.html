@@ -7,8 +7,8 @@
         body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; background: #eceff1; }
         .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
         
-        /* Login Screen Visibility */
-        #login-screen { display: block; }
+        /* Auth Screen Visibility */
+        #auth-container { display: block; }
         #app-content { display: none; }
 
         .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
@@ -28,20 +28,45 @@
         
         .leave-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 15px 0; }
         .leave-stats th, .leave-stats td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        #msg, #leaveMsg { margin-top: 15px; font-weight: bold; font-size: 14px; }
+        
+        /* Message styling */
+        .message-box { margin-top: 10px; font-size: 13px; font-weight: bold; min-height: 20px; }
+        .text-red { color: red; }
+        .text-blue { color: blue; }
+        .text-green { color: #28a745; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="login-screen">
-        <h2>Employee Login</h2>
-        <label>Official Email</label>
-        <input type="email" id="email" placeholder="name@company.com">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Enter password">
-        <button class="btn-login" onclick="login()">Login to Portal</button>
-        <p id="loginMsg" style="color:red; margin-top: 10px; font-size: 13px;"></p>
+    
+    <div id="auth-container">
+        <div class="tabs">
+            <div class="tab active" onclick="openAuthTab(event, 'login-section')">Login</div>
+            <div class="tab" onclick="openAuthTab(event, 'signup-section')">Sign Up</div>
+        </div>
+
+        <div id="login-section" class="tab-content active">
+            <h2>Employee Login</h2>
+            <label>Official Email</label>
+            <input type="email" id="email" placeholder="name@company.com">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Enter password">
+            <button class="btn-login" onclick="login()">Login to Portal</button>
+            <p id="loginMsg" class="message-box"></p>
+        </div>
+
+        <div id="signup-section" class="tab-content">
+            <h2>New User Registration</h2>
+            <label>Official Email</label>
+            <input type="email" id="newEmail" placeholder="name@company.com">
+            <label>Create Password</label>
+            <input type="password" id="newPassword" placeholder="New password">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmPassword" placeholder="Confirm password">
+            <button class="btn-login" onclick="signupUser()">Register</button>
+            <p id="signupMsg" class="message-box"></p>
+        </div>
     </div>
 
     <div id="app-content">
@@ -54,7 +79,7 @@
             <h3 id="userDisplay">Welcome</h3>
             <button onclick="sendAction('in')" class="btn-in">Check In</button>
             <button onclick="sendAction('out')" class="btn-out">Check Out</button>
-            <p id="msg"></p>
+            <p id="msg" class="message-box"></p>
         </div>
 
         <div id="leave-section" class="tab-content">
@@ -73,7 +98,7 @@
             <label>Days</label>
             <input type="number" id="leaveDays" min="1" value="1">
             <button onclick="sendAction('leave')" class="btn-leave">Submit Request</button>
-            <p id="leaveMsg"></p>
+            <p id="leaveMsg" class="message-box"></p>
         </div>
         
         <button onclick="location.reload()" style="background:none; color:#999; font-size:12px; margin-top:20px; border:1px solid #ddd; padding: 5px;">Logout</button>
@@ -82,11 +107,79 @@
 
 <script>
     
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzekY8kx5cJ4rFw1p68H31sDJnp8sVSSMCV2K7ccp1fJfMMMRuN-AzcqojpJeuAZ6lI/exec';
     
-    // Global variables to hold credentials after login
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbztMqEHAtXCovqlpG4641nTN_XuV9LgluqEb1t3nLUmtgC4BFVxzsnOsogWhSC5TrqZ/exec';
+    
+    // Global variables
     let userEmail = "";
     let userPass = "";
+
+    // --- NEW: Function to switch between Login and Signup tabs ---
+    function openAuthTab(evt, sectionId) {
+        let contents = document.querySelectorAll('#auth-container .tab-content');
+        for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+        let tabs = document.querySelectorAll('#auth-container .tab');
+        for (let i = 0; i < tabs.length; i++) tabs[i].classList.remove("active");
+        document.getElementById(sectionId).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // --- NEW: Function to handle Registration ---
+    function signupUser() {
+        const email = document.getElementById('newEmail').value;
+        const pass = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const msg = document.getElementById('signupMsg');
+
+        msg.className = "message-box"; // reset class
+        
+        if (!email || !pass || !confirm) {
+            msg.innerText = "Please fill in all fields.";
+            msg.classList.add("text-red");
+            return;
+        }
+
+        if (pass !== confirm) {
+            msg.innerText = "Passwords do not match.";
+            msg.classList.add("text-red");
+            return;
+        }
+
+        msg.innerText = "Registering user...";
+        msg.classList.add("text-blue");
+
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', pass);
+        formData.append('action', 'signup'); // This tells the script to run the new logic
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(res => res.text())
+            .then(result => {
+                msg.innerText = result;
+                if (result.includes("Error")) {
+                    msg.className = "message-box text-red";
+                } else {
+                    msg.className = "message-box text-green";
+                    // Clear inputs
+                    document.getElementById('newEmail').value = "";
+                    document.getElementById('newPassword').value = "";
+                    document.getElementById('confirmPassword').value = "";
+                    // Optional: Switch back to login tab after 2 seconds
+                    setTimeout(() => {
+                        alert("Registration Successful! Please Login.");
+                        let tabs = document.querySelectorAll('#auth-container .tab');
+                        openAuthTab({currentTarget: tabs[0]}, 'login-section');
+                    }, 1000);
+                }
+            })
+            .catch(err => {
+                msg.innerText = "Connection Error.";
+                msg.className = "message-box text-red";
+            });
+    }
+
+    // --- EXISTING FUNCTIONS (Unchanged Logic) ---
 
     function login() {
         userEmail = document.getElementById('email').value;
@@ -95,33 +188,31 @@
 
         if(!userEmail || !userPass) {
             loginMsg.innerText = "Please fill in all fields.";
+            loginMsg.className = "message-box text-red";
             return;
         }
         
-        loginMsg.style.color = "blue";
+        loginMsg.className = "message-box text-blue";
         loginMsg.innerText = "Verifying credentials...";
         
-        // Use the balance fetch as a login check
         fetch(`${scriptURL}?action=getBalance&email=${userEmail}`)
             .then(res => res.json())
             .then(data => {
-                // If we get data back, the email is valid. 
-                // Note: Actual password verification happens in the POST request (sendAction)
-                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('auth-container').style.display = 'none';
                 document.getElementById('app-content').style.display = 'block';
                 document.getElementById('userDisplay').innerText = "Hello, " + userEmail.split('@')[0];
                 updateStatTable(data);
             })
             .catch(() => {
-                loginMsg.style.color = "red";
+                loginMsg.className = "message-box text-red";
                 loginMsg.innerText = "Login failed. Check your connection or email.";
             });
     }
 
     function openTab(evt, sectionId) {
-        let contents = document.getElementsByClassName("tab-content");
+        let contents = document.querySelectorAll('#app-content .tab-content');
         for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
-        let tabs = document.getElementsByClassName("tab");
+        let tabs = document.querySelectorAll('#app-content .tab');
         for (let i = 0; i < tabs.length; i++) tabs[i].classList.remove("active");
         document.getElementById(sectionId).classList.add("active");
         evt.currentTarget.classList.add("active");
@@ -138,7 +229,7 @@
     function sendAction(action) {
         const msg = (action === 'leave') ? document.getElementById('leaveMsg') : document.getElementById('msg');
         msg.innerText = "Sending to server...";
-        msg.style.color = "blue";
+        msg.className = "message-box text-blue";
         
         const formData = new FormData();
         formData.append('email', userEmail);
@@ -155,21 +246,19 @@
             .then(result => {
                 msg.innerText = result;
                 if(result.includes("Error") || result.includes("Invalid")) {
-                    msg.style.color = "red";
-                    // If password failed on action, return to login
+                    msg.className = "message-box text-red";
                     if(result.includes("Invalid Email or Password")) {
                         alert("Session expired or invalid credentials. Please login again.");
                         location.reload();
                     }
                 } else {
-                    msg.style.color = "#28a745";
-                    // Refresh stats if a leave was submitted
+                    msg.className = "message-box text-green";
                     if(action === 'leave') login(); 
                 }
             })
             .catch(err => {
                 msg.innerText = "Error connecting to server.";
-                msg.style.color = "red";
+                msg.className = "message-box text-red";
             });
     }
 </script>
