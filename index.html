@@ -6,30 +6,22 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; background: #eceff1; }
         .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
-        
-        /* Auth Screen Visibility */
         #auth-container { display: block; }
         #app-content { display: none; }
-
         .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
         .tab { flex: 1; padding: 12px; cursor: pointer; color: #666; font-weight: bold; }
         .tab.active { color: #007bff; border-bottom: 3px solid #007bff; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
         input, select { padding: 12px; width: 100%; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         label { display: block; text-align: left; font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
-        
         button { padding: 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; width: 100%; transition: 0.3s; font-size: 16px; }
         .btn-login { background: #007bff; }
         .btn-in { background: #28a745; margin-bottom: 10px;}
         .btn-out { background: #dc3545; }
         .btn-leave { background: #007bff; margin-top: 10px; }
-        
         .leave-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 15px 0; }
         .leave-stats th, .leave-stats td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        
-        /* Message styling */
         .message-box { margin-top: 10px; font-size: 13px; font-weight: bold; min-height: 20px; }
         .text-red { color: red; }
         .text-blue { color: blue; }
@@ -39,7 +31,6 @@
 <body>
 
 <div class="card">
-    
     <div id="auth-container">
         <div class="tabs">
             <div class="tab active" onclick="openAuthTab(event, 'login-section')">Login</div>
@@ -106,15 +97,12 @@
 </div>
 
 <script>
+    // ⚠️ PASTE YOUR NEW WEB APP URL HERE
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwlr7sZzA4WwO-P5UTxU1Kq8MGnCd5gVa6TROGQtZ0bgdY46FakBjViWN5lMxBSJco/exec'; 
     
-    
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbztMqEHAtXCovqlpG4641nTN_XuV9LgluqEb1t3nLUmtgC4BFVxzsnOsogWhSC5TrqZ/exec';
-    
-    // Global variables
     let userEmail = "";
     let userPass = "";
 
-    // --- NEW: Function to switch between Login and Signup tabs ---
     function openAuthTab(evt, sectionId) {
         let contents = document.querySelectorAll('#auth-container .tab-content');
         for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
@@ -124,14 +112,14 @@
         evt.currentTarget.classList.add("active");
     }
 
-    // --- NEW: Function to handle Registration ---
     function signupUser() {
-        const email = document.getElementById('newEmail').value;
-        const pass = document.getElementById('newPassword').value;
-        const confirm = document.getElementById('confirmPassword').value;
+        // Force lowercase logic here
+        const email = document.getElementById('newEmail').value.trim().toLowerCase();
+        const pass = document.getElementById('newPassword').value.trim();
+        const confirm = document.getElementById('confirmPassword').value.trim();
         const msg = document.getElementById('signupMsg');
 
-        msg.className = "message-box"; // reset class
+        msg.className = "message-box"; 
         
         if (!email || !pass || !confirm) {
             msg.innerText = "Please fill in all fields.";
@@ -151,9 +139,10 @@
         const formData = new FormData();
         formData.append('email', email);
         formData.append('password', pass);
-        formData.append('action', 'signup'); // This tells the script to run the new logic
+        formData.append('action', 'signup');
 
-        fetch(scriptURL, { method: 'POST', body: formData })
+        // Added redirect: 'follow' for mobile stability
+        fetch(scriptURL, { method: 'POST', body: formData, redirect: 'follow' })
             .then(res => res.text())
             .then(result => {
                 msg.innerText = result;
@@ -161,11 +150,9 @@
                     msg.className = "message-box text-red";
                 } else {
                     msg.className = "message-box text-green";
-                    // Clear inputs
                     document.getElementById('newEmail').value = "";
                     document.getElementById('newPassword').value = "";
                     document.getElementById('confirmPassword').value = "";
-                    // Optional: Switch back to login tab after 2 seconds
                     setTimeout(() => {
                         alert("Registration Successful! Please Login.");
                         let tabs = document.querySelectorAll('#auth-container .tab');
@@ -179,11 +166,10 @@
             });
     }
 
-    // --- EXISTING FUNCTIONS (Unchanged Logic) ---
-
     function login() {
-        userEmail = document.getElementById('email').value;
-        userPass = document.getElementById('password').value;
+        // Force lowercase to fix mobile capitalization
+        userEmail = document.getElementById('email').value.trim().toLowerCase();
+        userPass = document.getElementById('password').value.trim();
         const loginMsg = document.getElementById('loginMsg');
 
         if(!userEmail || !userPass) {
@@ -195,18 +181,34 @@
         loginMsg.className = "message-box text-blue";
         loginMsg.innerText = "Verifying credentials...";
         
-        fetch(`${scriptURL}?action=getBalance&email=${userEmail}`)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('auth-container').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                document.getElementById('userDisplay').innerText = "Hello, " + userEmail.split('@')[0];
-                updateStatTable(data);
-            })
-            .catch(() => {
+        // 1. First Verify Password with a POST request
+        const formData = new FormData();
+        formData.append('email', userEmail);
+        formData.append('password', userPass);
+        formData.append('action', 'login_check');
+
+        fetch(scriptURL, { method: 'POST', body: formData, redirect: 'follow' })
+        .then(res => res.text())
+        .then(authResult => {
+            if(authResult.includes("Error")) {
                 loginMsg.className = "message-box text-red";
-                loginMsg.innerText = "Login failed. Check your connection or email.";
-            });
+                loginMsg.innerText = "Invalid Email or Password.";
+            } else {
+                // 2. If Password correct, fetch the balance (GET)
+                fetch(`${scriptURL}?action=getBalance&email=${userEmail}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('auth-container').style.display = 'none';
+                        document.getElementById('app-content').style.display = 'block';
+                        document.getElementById('userDisplay').innerText = "Hello, " + userEmail.split('@')[0];
+                        updateStatTable(data);
+                    });
+            }
+        })
+        .catch(() => {
+            loginMsg.className = "message-box text-red";
+            loginMsg.innerText = "Login failed. Check your connection.";
+        });
     }
 
     function openTab(evt, sectionId) {
@@ -241,7 +243,7 @@
             formData.append('days', document.getElementById('leaveDays').value);
         }
 
-        fetch(scriptURL, { method: 'POST', body: formData })
+        fetch(scriptURL, { method: 'POST', body: formData, redirect: 'follow' })
             .then(res => res.text())
             .then(result => {
                 msg.innerText = result;
